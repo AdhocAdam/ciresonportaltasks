@@ -2,7 +2,7 @@
 $(document).ready(function(){
 	setTimeout(function() {
 		var url = window.location.href;
-		//works on My Work, Team Work, or All Work
+		//works on My Work, Team Work, or All Work. The GUIDs of those pages are seen here are in the identical order.
 		if ((url.indexOf("cca5abda-6803-4833-accd-d59a43e2d2cf") > 0 ) || (url.indexOf("f94d43eb-eb42-4957-8c48-95b9b903c631") > 0 ) || (url.indexOf("62f452d5-66b5-429b-b2b1-b32d5562092b") > 0 ))
 		{
 				var vm = new kendo.observable({
@@ -117,7 +117,7 @@ $(document).ready(function(){
 					});
 
 					//load the form
-					require(["text!/CustomSpace/drawerTasks/linktoparent.html"], function (template) { 
+					require(["text!/CustomSpace/drawerTasks/RelateToWorkItem.html"], function (template) { 
 						//make a jQuery obj 
 						cont = $(template); 
 						
@@ -280,10 +280,9 @@ $(document).ready(function(){
 			});
 
 			//Leave First Response/Comment
-			//injecting the button into the task drawr 
-			var commentTag = '<li id="addComment"><a>Add A Comment </a></li>';
+			var commentTag = '<li id="newcomment"><a>Add A Comment</a></li>';
 			$('.drawer-task-menu').append(commentTag);
-			$('#addComment').bind('click', function()
+			$('#newcomment').bind('click', function()
 			{
 				if (vm.targetControlId)
 				{
@@ -301,7 +300,7 @@ $(document).ready(function(){
 						console.log(workitem.Id);
 					});
 
-					require(["text!/CustomSpace/drawerTasks/addCommentCopy.html"], function (template) { 
+					require(["text!/CustomSpace/drawerTasks/NewComment.html"], function (template) { 
 						//make a jQuery obj 
 						cont = $(template); 
 						
@@ -406,7 +405,196 @@ $(document).ready(function(){
 						win.open().center();
 					})
 				}
-			})
+			});
+
+			//Relate to Work Item
+			var linkToWorkItemTag = '<li id="RelateToWI"><a>Relate to Work Item</a></li>';
+			$('.drawer-task-menu').append(linkToWorkItemTag);
+			$('#RelateToWI').bind('click', function()
+			{
+				if (vm.targetControlId)
+				{
+					var gridId = "#" + vm.targetControlId;
+					var grid = $(gridId).getKendoGrid();
+					var wiSelection = grid.select();
+					
+					//create an empty array to hold the selected work items
+					var selectedWIArray = [];
+					//for each Work Item selected add to an array
+					console.log('Selected the following Incidents for Work Item Relate')
+					$.each(wiSelection, function(i,e)
+					{
+						var griditem = grid.dataItem(wiSelection[i])
+						if (griditem.WorkItemType === "System.WorkItem.Incident")
+						{
+							var ProjectionID = "2d460edd-d5db-bc8c-5be7-45b050cba652"
+							selectedWIArray.push(GetProjection(griditem.Id, ProjectionID));
+						}
+						else if (griditem.WorkItemType === "System.WorkItem.Problem")
+						{
+							var ProjectionID = "aa6d17ac-0ed8-5d86-d862-cff4cd8792fa"
+							selectedWIArray.push(GetProjection(griditem.Id, ProjectionID));
+						}
+						else if (griditem.WorkItemType === "System.WorkItem.ServiceRequest")
+						{
+							var ProjectionID = "7ffc8bb7-2c2c-0bd9-bd37-2b463a0f1af7"
+							selectedWIArray.push(GetProjection(griditem.Id, ProjectionID));
+						}
+						else if (griditem.WorkItemType === "System.WorkItem.ChangeRequest")
+						{
+							var ProjectionID = "4c8f4f06-4c8f-a1b6-c104-89cfb7b593fa"
+							selectedWIArray.push(GetProjection(griditem.Id, ProjectionID));
+						}
+						else
+						{
+							console.log('Must be an Incident, Problem, Service or Change Request');
+						}
+					});
+
+					//load the form
+					require(["text!/CustomSpace/drawerTasks/RelateToWorkItem.html"], function (template) { 
+						//make a jQuery obj 
+						cont = $(template); 
+						
+						//create a view model to handle the UX 
+						var _vmWindow = new kendo.observable({ 
+							searchText: "",
+							searchClick: function () {
+								var val = this.get("searchText");
+								this.refreshDataSource();
+								this.dataSource.filter({
+									logic: "or",
+									filters: [
+										{
+											field: "Id",
+											operator: "contains",
+											value: val
+										},
+										{
+											field: "Title",
+											operator: "contains",
+											value: val
+										}
+									]
+								});
+							},
+							okEnabled: false, 
+							okClick: function () {
+								if (!this.selectedRow)
+									return;
+								
+								//get the selected Work Item to relate the selection to
+								console.log('Selected a Work Item to relate from Popup')
+								//loop and relate
+								var selectedWorkItemRow = this.selectedRow;
+								switch(selectedWorkItemRow.WorkItemType) {
+									case "System.WorkItem.Incident":
+										var ProjectionID = "2d460edd-d5db-bc8c-5be7-45b050cba652";
+										break;
+									case "System.WorkItem.Problem":
+										var ProjectionID = "aa6d17ac-0ed8-5d86-d862-cff4cd8792fa";
+									  	break;
+									case "System.WorkItem.ServiceRequest":
+										var ProjectionID = "7ffc8bb7-2c2c-0bd9-bd37-2b463a0f1af7";
+										break;
+									case "System.WorkItem.ChangeRequest":
+										var ProjectionID = "4c8f4f06-4c8f-a1b6-c104-89cfb7b593fa";
+										break;
+								  }
+
+								  $.ajax({
+									type: 'GET',
+									url: '/api/V3/Projection/GetProjection',
+									data: { id: selectedWorkItemRow.Id, typeProjectionId: ProjectionID },
+									contentType: "application/json",
+									dataType: 'json',
+									success: function(data) {
+										var TargetWorkItem = data;
+										selectedWIArray.forEach(function(wi)
+										{
+											var originalWorkItem = wi.responseJSON;
+											var updatedWorkItem = JSON.parse(JSON.stringify(wi)).responseJSON;
+											console.log('Going to relate ' + updatedWorkItem.Id + ' to ' + TargetWorkItem.Id);
+											try
+											{
+												//items are already related, add to the array
+												updatedWorkItem.RelatesToWorkItem.push(TargetWorkItem);
+											}
+											catch
+											{
+												//no related items exist, set the first item in the array
+												updatedWorkItem.RelatesToWorkItem = TargetWorkItem;
+											}
+
+											CommitWorkItem(updatedWorkItem, originalWorkItem, "Relate");
+										});
+									}
+								});
+
+								this.dataSource.filter([]);
+								win.close();
+							},
+							cancelClick: function () {
+								this.dataSource.filter([]);
+								win.close();
+							},
+							dataSource: new kendo.data.DataSource({
+								transport: {
+									read: {
+										dataType: "json",
+										url: "/api/V3/WorkItem/GetGridWorkItemsAll",
+										data: {
+											"userId": session.user.Id,
+											"isScoped": false,
+											"showActivities": false,
+											"showInactiveItems": false
+										},
+										type: "GET"
+									}
+								},
+								schema: {
+									model: {
+										fields: {
+											Id: { type: "string" },
+											Title: { type: "string" },
+											Status: { type: "string" },
+											BaseId: { type: "string" }
+										}
+									}
+								},
+								pageSize: 10,
+							}),
+							selectedRow: null,
+							gridChange: function (eventArgs) {
+								this.set("okEnabled", true);
+								this.set("selectedRow", eventArgs.sender.dataItem(eventArgs.sender.select()));
+							},
+							refreshDataSource: function () {
+								this.dataSource.read();
+							}
+						}); 
+
+						//create the kendo window 
+						win = cont.kendoWindow({ 
+							title: "Relate to Work Item", 
+							resizable: false, 
+							modal: true, 
+							viewable: false, 
+							width: 700, 
+							height: 700, 
+							close: function () { }, 
+							activate: function () { 
+								//on window activate bind the view model to the loaded template content 
+								kendo.bind(cont, _vmWindow);
+							} 
+						}).data("kendoWindow");
+
+						//now open the window 
+						win.open().center();
+					});
+				}
+			});
+
 		}
 	}, 2000);
 }) 
