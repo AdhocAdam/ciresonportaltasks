@@ -1,0 +1,31 @@
+<div>
+	<div id="addComment" class="k-editable-area"> 
+        <div>
+            <!-- Text above text imput box-->
+			<div class="inline-spacing">
+				<label>What Comment Would You Like To Add?</label>
+            </div>
+			<div class="inline-spacing">
+                <!-- Comment box-->
+                <textarea class="k-textbox input-sm" rows="7" data-bind="value: analystComment, events : {keyup:textCounter}" data-value-update="keyup"></textarea>
+            </div> 
+            <div class="col-md-12">
+                <!-- Characters remaining -->
+                <div class="inline-spacing">
+                    <span data-bind="html:charactersRemaining"></span><span> characters remaining</span>
+                </div>
+                <!-- Checkbox that mark comment as Private-->
+                <div class="wrapperClass">
+                    <input type="checkbox" data-bind="checked: leavePrivateComment" id="actionLogisPrivate">
+                    <label style="vertical-align: middle;" for="actionLogisPrivate"><span>Private</span></label>
+                </div>
+            </div>
+        </div>
+        <!--   OK and CANCEL button start -->
+        <div class="window-buttons">
+            <button data-role="button" class="btn btn-primary" data-bind="enabled: okEnabled, events: { click: okClick }">OK</button>
+            <button data-role="button" class="btn btn-primary" data-bind="events: { click: cancelClick }">Cancel</button>
+        </div>
+    </div>
+</div>
+
